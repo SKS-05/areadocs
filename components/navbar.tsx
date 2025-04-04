@@ -1,44 +1,65 @@
-import { ModeToggle } from "@/components/theme-toggle";
-import { CommandIcon } from "lucide-react";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, signOut, User } from "firebase/auth";
 import Link from "next/link";
-import { SheetLeftbar } from "./leftbar";
-import AlgoliaSearch from "./algolia-search";
+import { ModeToggle } from "@/components/theme-toggle";
+import AlgoliaSearch from "@/components/algolia-search";
 
-const algolia_props = {
-  appId: process.env.ALGOLIA_APP_ID!,
-  indexName: process.env.ALGOLIA_INDEX!,
-  apiKey: process.env.ALGOLIA_SEARCH_API_KEY!,
-};
+export default function Navbar() {
+  const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
-export function Navbar() {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    router.push("/login");
+  };
+
   return (
-    <nav className="w-full border-b h-16 sticky top-0 z-50 bg-background">
-      <div className="sm:container mx-auto w-[95vw] h-full flex items-center sm:justify-between md:gap-2">
-        <div className="flex items-center sm:gap-5 gap-2.5">
-          <SheetLeftbar />
-          <div className="flex items-center gap-6">
-            <div className="sm:flex hidden">
-              <Logo />
-            </div>
-          </div>
-        </div>
+    <nav className="flex items-center justify-between px-6 py-3 bg-transparent shadow-none">
+      {/* Left Section: Logo */}
+      <div className="text-lg font-bold text-black dark:text-white">
+        AriaDocs
+      </div>
 
-        <div className="flex items-center sm:justify-normal justify-between sm:gap-3 ml-1 sm:w-fit w-[90%]">
-          <AlgoliaSearch {...algolia_props} />
-          <div className="flex items-center justify-between sm:gap-2">
-            <ModeToggle />
-          </div>
-        </div>
+      {/* Middle Section: Algolia Search */}
+      <div className="flex-1 mx-4 max-w-md">
+        <AlgoliaSearch
+          appId="YOUR_ALGOLIA_APP_ID"
+          indexName="YOUR_ALGOLIA_INDEX_NAME"
+          apiKey="YOUR_ALGOLIA_API_KEY"
+        />
+      </div>
+
+      {/* Right Section: Mode Toggle + Auth Buttons */}
+      <div className="flex items-center space-x-4">
+        <ModeToggle />
+
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 text-white bg-black rounded-md hover:bg-gray-800 transition"
+          >
+            Logout
+          </button>
+        ) : (
+          <Link href="/login">
+            <button className="px-4 py-2 text-white bg-black rounded-md hover:bg-gray-800 transition">
+              Login
+            </button>
+          </Link>
+        )}
       </div>
     </nav>
-  );
-}
-
-export function Logo() {
-  return (
-    <Link href="/" className="flex items-center gap-2.5">
-      <CommandIcon className="w-6 h-6 text-muted-foreground" strokeWidth={2} />
-      <h2 className="text-md font-bold font-code">AriaDocs</h2>
-    </Link>
   );
 }
